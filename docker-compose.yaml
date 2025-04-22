@@ -1,0 +1,7 @@
+services:
+  api_scoring:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
