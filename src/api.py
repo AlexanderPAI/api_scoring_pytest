@@ -3,13 +3,15 @@
 
 import datetime
 import hashlib
+import http
 import json
 import logging
 import uuid
 from argparse import ArgumentParser
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Any
 
-# from src.scoring import get_interests, get_score
+from src.scoring import get_interests, get_score
 
 SALT = "Otus"
 ADMIN_LOGIN = "admin"
@@ -37,28 +39,28 @@ GENDERS = {
 }
 
 
+# По сути каждое поле - это дескриптор атрибута класса Запроса
+
+
 class Field:
-    # По сути это базовый дескриптор для поля
-    # Поле - это атрибут класса Запроса
+
     def __init__(
         self,
         required: bool = False,
         nullable: bool = True,
-    ):
+    ) -> None:
         self.required = required
         self.nullable = nullable
-        self.name = (
-            None  # очевидно, что идею использования name и __set_name__ честно упёр
-        )
+        self.name = None  # name и __set_name__ подсмотрел и упёр
 
-    def __set_name__(self, owner, name):
+    def __set_name__(self, owner, name) -> None:
         self.name = name
 
-    def __set__(self, instance, value):
+    def __set__(self, instance, value) -> None:
         self.validate(value)
         instance.__dict__[self.name] = value
 
-    def validate(self, value) -> bool:
+    def validate(self, value) -> None:
         if value is None:
             if self.required:
                 raise ValueError(f"Field {self.name} is required")
@@ -67,7 +69,7 @@ class Field:
         else:
             self.sub_field_validate(value)
 
-    def sub_field_validate(self, value):
+    def sub_field_validate(self, value) -> Any:
         pass
 
 
@@ -128,13 +130,20 @@ class BaseRequest:
         for field_name, field in self.__class__.__dict__.items():
             if not isinstance(
                 field, property
-            ):  # так как is_admin у OnlineScoreRequest тоже попадет в __dict__ класса
+            ):  # так как is_admin у OnlineScoreRequest тоже попадет в __dict__ класса, а мы не хотим делать ему сеттер
                 value = data.get(field_name)
                 setattr(self, field_name, value)
 
+    def to_dict(self):
+        return {
+            attr: value
+            for attr, value in self.__dict__.items()
+            if not attr.startswith("__")
+        }
+
 
 class MethodRequest(BaseRequest):
-    # Все поля - это атрибуты класса, поэтому они попадут в __class__.__dict__ у BaseRequest
+    # Поля - это тупо атрибуты класса, поэтому они попадут в __class__.__dict__ у BaseRequest
     # Типы полей - это дескрипторы атрибутов класса
     account = CharField(required=False, nullable=True)
     login = CharField(required=True, nullable=True)
@@ -175,12 +184,19 @@ def check_auth(request):
 
 def clients_interests_method(request_obj, ctx, store):
     request_obj = ClientsInterestsRequest(request_obj.arguments)
-    print(request_obj.__dict__)
+    response = {
+        client_id: get_interests(store, client_id)
+        for client_id in request_obj.client_ids
+    }
+    status_code = http.HTTPStatus.OK
+    return response, status_code
 
 
 def online_score_method(request_obj, ctx, store):
     request_obj = OnlineScoreRequest(request_obj.arguments)
-    print(request_obj.__dict__)
+    response = {"score": get_score(store, **request_obj.to_dict())}
+    status_code = http.HTTPStatus.OK
+    return response, status_code
 
 
 def method_handler(request, ctx, store):
@@ -192,9 +208,7 @@ def method_handler(request, ctx, store):
     request_body = request.get("body")
     request_obj = MethodRequest(request_body)
 
-    methods.get(request_body.get("method"))(request_obj, ctx, store)
-
-    response, code = {}, 200
+    response, code = methods.get(request_body.get("method"))(request_obj, ctx, store)
     return response, code
 
 
