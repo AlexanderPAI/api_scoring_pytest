@@ -200,12 +200,9 @@ class OnlineScoreRequest(BaseRequest):
 
     def validate(self):
         if not (
-            bool(self.phone)
-            and bool(self.email)
-            or bool(self.first_name)
-            and bool(self.last_name)
-            or bool(self.birthday)
-            and bool(self.gender)
+            (self.first_name is not None and self.last_name is not None)
+            or (self.email is not None and self.phone is not None)
+            or (self.birthday is not None and self.gender is not None)
         ):
             raise ValueError(
                 '"online_score" request must have at least one pair with non-empty values: '
@@ -231,12 +228,9 @@ def online_score_method(request_obj, ctx, store):
     if not request_obj.is_admin:
         response = {"score": get_score(store, **online_score_request_obj.to_dict())}
     else:
-        response = {"score": ADMIN_SALT}
+        response = {"score": 42}
 
     ctx["has"] = []
-    for field, value in request_obj.__dict__.items():
-        if value is not None:
-            ctx["has"].append(field)
     for field, value in online_score_request_obj.__dict__.items():
         if value is not None:
             ctx["has"].append(field)
@@ -339,7 +333,7 @@ if __name__ == "__main__":
         format="[%(asctime)s] %(levelname).1s %(message)s",
         datefmt="%Y.%m.%d %H:%M:%S",
     )
-    server = HTTPServer(("localhost", args.port), MainHTTPHandler)
+    server = HTTPServer(("0.0.0.0", args.port), MainHTTPHandler)
     logging.info("Starting server at %s" % args.port)
     try:
         server.serve_forever()

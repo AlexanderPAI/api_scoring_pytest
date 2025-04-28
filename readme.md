@@ -1,3 +1,49 @@
+## NB
+
+В тестах и в ТЗ противоречие.
+
+В ТЗ указано, что:
+```
+client_ids - массив числе, обязательно, не пустое
+```
+
+А тесты требуют, чтобы при пустом поле `client_ids` был код `200`, а не `422` (т.е. чтобы поле могло быть пустым):
+```
+======================================================================
+FAIL: test_invalid_interests_request (tests.test.TestSuite.test_invalid_interests_request)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\DevA\study\otus\_hw05\api_scoring\tests\test.py", line 15, in wrapper
+    ~^^^^^^^^^^^
+  File "C:\DevA\study\otus\_hw05\api_scoring\tests\test.py", line 213, in test_invalid_interests_request
+    self.assertEqual(api.INVALID_REQUEST, code, arguments)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 422 != 200 : {'client_ids': [], 'date': '20.07.2017'}
+
+----------------------------------------------------------------------
+
+```
+
+## Порядок запуска
+
+url корневого эндпоинта заменен на "0.0.0.0", так как при запуске через docker - url, указанный как "localhost" работать не будет
+
+В docker-контейнере через docker compose
+```commandline
+docker compose up --build
+```
+
+Без контейнера
+```commandline
+python -m src.api
+```
+
+Запуск unittest'ов
+```commandline
+python -m unittest tests.test
+```
+
+
 ## Задание
 ### Scoring API
 
