@@ -180,6 +180,10 @@ class MethodRequest(BaseRequest):
     arguments: dict[str, Any] = ArgumentsField(required=True, nullable=True)
     method: str = CharField(required=True, nullable=False)
 
+    @property
+    def is_admin(self):
+        return self.login == ADMIN_LOGIN
+
 
 class ClientsInterestsRequest(BaseRequest):
     client_ids: list[int] = ClientIDsField(required=True)
@@ -194,18 +198,11 @@ class OnlineScoreRequest(BaseRequest):
     birthday: str = BirthDayField(required=False, nullable=True)
     gender: int = GenderField(required=False, nullable=True)
 
-    @property
-    def is_admin(self):
-        return self.login == ADMIN_LOGIN
-
     def validate(self):
         if not (
-            bool(self.phone)
-            and bool(self.email)
-            or bool(self.first_name)
-            and bool(self.last_name)
-            or bool(self.birthday)
-            and bool(self.gender)
+            (self.first_name is not None and self.last_name is not None)
+            or (self.email is not None and self.phone is not None)
+            or (self.birthday is not None and self.gender is not None)
         ):
             raise ValueError(
                 '"online_score" request must have at least one pair with non-empty values: '
@@ -226,32 +223,59 @@ def check_auth(request):
 
 
 def online_score_method(request_obj, ctx, store):
-    request_obj = OnlineScoreRequest(request_obj.arguments)
-    response = {"score": get_score(store, **request_obj.to_dict())}
-    status_code = OK
-    return response, status_code
+    online_score_request_obj = OnlineScoreRequest(request_obj.arguments)
+
+    if not request_obj.is_admin:
+        response = {"score": get_score(store, **online_score_request_obj.to_dict())}
+    else:
+        response = {"score": 42}
+
+    ctx["has"] = []
+    for field, value in online_score_request_obj.__dict__.items():
+        if value is not None:
+            ctx["has"].append(field)
+
+    return response, OK
 
 
 def clients_interests_method(request_obj, ctx, store):
-    request_obj = ClientsInterestsRequest(request_obj.arguments)
+    clients_interests_request_obj = ClientsInterestsRequest(request_obj.arguments)
     response = {
         client_id: get_interests(store, client_id)
-        for client_id in request_obj.client_ids
+        for client_id in clients_interests_request_obj.client_ids
     }
-    status_code = OK
-    return response, status_code
+
+    ctx["nclients"] = len(clients_interests_request_obj.client_ids)
+
+    return response, OK
 
 
 def method_handler(request, ctx, store):
-    methods = {
-        "clients_interests": clients_interests_method,
-        "online_score": online_score_method,
-    }
+    try:
+        methods = {
+            "clients_interests": clients_interests_method,
+            "online_score": online_score_method,
+        }
 
-    request_body = request.get("body")
-    request_obj = MethodRequest(request_body)
-    response, code = methods.get(request_body.get("method"))(request_obj, ctx, store)
-    return response, code
+        request_body = request.get("body")
+        request_obj = MethodRequest(request_body)
+
+        if not check_auth(request_obj):
+            response, code = "Forbidden", FORBIDDEN
+            return response, code
+
+        method = request_body.get("method")
+        if method and method in methods.keys():
+            response, code = methods.get(request_body.get("method"))(
+                request_obj, ctx, store
+            )
+            return response, code
+        else:
+            response, code = "The method was not found", INVALID_REQUEST
+            return response, code
+
+    except ValueError as e:
+        return str(e), INVALID_REQUEST
 
 
 class MainHTTPHandler(BaseHTTPRequestHandler):
@@ -309,7 +333,7 @@ if __name__ == "__main__":
         format="[%(asctime)s] %(levelname).1s %(message)s",
         datefmt="%Y.%m.%d %H:%M:%S",
     )
-    server = HTTPServer(("localhost", args.port), MainHTTPHandler)
+    server = HTTPServer(("0.0.0.0", args.port), MainHTTPHandler)
     logging.info("Starting server at %s" % args.port)
     try:
         server.serve_forever()
