@@ -9,6 +9,8 @@ import re
 import uuid
 from argparse import ArgumentParser
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from types import FunctionType
+from typing import Any
 
 from src.scoring import get_interests, get_score
 
@@ -142,7 +144,7 @@ class GenderField(Field):
 
 
 class ClientIDsField(Field):
-    def sub_field_validate(self, value) -> bool:
+    def sub_field_validate(self, value) -> None:
         if not isinstance(value, list) and all(
             isinstance(client_id, int) for client_id in value
         ):
@@ -151,51 +153,64 @@ class ClientIDsField(Field):
 
 class BaseRequest:
     def __init__(self, data: dict):
-        # базовый request
-        # проходимся по всем атрибутам (полям) КЛАССА
-        # достаем value через data.get
-        # устанавливаем у Request'a значение {value} атрибуту {field_name}
         for field_name, field in self.__class__.__dict__.items():
-            if not isinstance(
-                field, property
-            ):  # так как is_admin у OnlineScoreRequest тоже попадет в __dict__ класса, а мы не хотим делать ему сеттер
+            if not isinstance(field, property | FunctionType):
                 value = data.get(field_name)
                 setattr(self, field_name, value)
 
-    def to_dict(self):
+        if hasattr(self, "validate"):
+            self.validate()
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             attr: value
             for attr, value in self.__dict__.items()
-            if not attr.startswith("__")
+            if not attr.startswith("__") and not attr.startswith("_")
         }
 
 
+# Поля - это тупо атрибуты класса, поэтому они попадут в __class__.__dict__ у BaseRequest
+# Типы полей - это дескрипторы атрибутов класса
+
+
 class MethodRequest(BaseRequest):
-    # Поля - это тупо атрибуты класса, поэтому они попадут в __class__.__dict__ у BaseRequest
-    # Типы полей - это дескрипторы атрибутов класса
-    account = CharField(required=False, nullable=True)
-    login = CharField(required=True, nullable=True)
-    token = CharField(required=True, nullable=True)
-    arguments = ArgumentsField(required=True, nullable=True)
-    method = CharField(required=True, nullable=False)
+    account: str = CharField(required=False, nullable=True)
+    login: str = CharField(required=True, nullable=True)
+    token: str = CharField(required=True, nullable=True)
+    arguments: dict[str, Any] = ArgumentsField(required=True, nullable=True)
+    method: str = CharField(required=True, nullable=False)
 
 
-class ClientsInterestsRequest(MethodRequest):
+class ClientsInterestsRequest(BaseRequest):
     client_ids: list[int] = ClientIDsField(required=True)
     date: str = DateField(required=False, nullable=True)
 
 
-class OnlineScoreRequest(MethodRequest):
-    first_name = CharField(required=False, nullable=True)
-    last_name = CharField(required=False, nullable=True)
-    email = EmailField(required=False, nullable=True)
-    phone = PhoneField(required=False, nullable=True)
-    birthday = BirthDayField(required=False, nullable=True)
-    gender = GenderField(required=False, nullable=True)
+class OnlineScoreRequest(BaseRequest):
+    first_name: str = CharField(required=False, nullable=True)
+    last_name: str = CharField(required=False, nullable=True)
+    email: str = EmailField(required=False, nullable=True)
+    phone: str | int = PhoneField(required=False, nullable=True)
+    birthday: str = BirthDayField(required=False, nullable=True)
+    gender: int = GenderField(required=False, nullable=True)
 
     @property
     def is_admin(self):
         return self.login == ADMIN_LOGIN
+
+    def validate(self):
+        if not (
+            bool(self.phone)
+            and bool(self.email)
+            or bool(self.first_name)
+            and bool(self.last_name)
+            or bool(self.birthday)
+            and bool(self.gender)
+        ):
+            raise ValueError(
+                '"online_score" request must have at least one pair with non-empty values: '
+                "phone - email, first_name - last_name, birthday - gender."
+            )
 
 
 def check_auth(request):
@@ -210,19 +225,19 @@ def check_auth(request):
     return digest == request.token
 
 
+def online_score_method(request_obj, ctx, store):
+    request_obj = OnlineScoreRequest(request_obj.arguments)
+    response = {"score": get_score(store, **request_obj.to_dict())}
+    status_code = OK
+    return response, status_code
+
+
 def clients_interests_method(request_obj, ctx, store):
     request_obj = ClientsInterestsRequest(request_obj.arguments)
     response = {
         client_id: get_interests(store, client_id)
         for client_id in request_obj.client_ids
     }
-    status_code = OK
-    return response, status_code
-
-
-def online_score_method(request_obj, ctx, store):
-    request_obj = OnlineScoreRequest(request_obj.arguments)
-    response = {"score": get_score(store, **request_obj.to_dict())}
     status_code = OK
     return response, status_code
 
