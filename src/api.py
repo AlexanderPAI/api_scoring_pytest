@@ -3,7 +3,6 @@
 
 import datetime
 import hashlib
-import http
 import json
 import logging
 import re
@@ -217,14 +216,14 @@ def clients_interests_method(request_obj, ctx, store):
         client_id: get_interests(store, client_id)
         for client_id in request_obj.client_ids
     }
-    status_code = http.HTTPStatus.OK
+    status_code = OK
     return response, status_code
 
 
 def online_score_method(request_obj, ctx, store):
     request_obj = OnlineScoreRequest(request_obj.arguments)
     response = {"score": get_score(store, **request_obj.to_dict())}
-    status_code = http.HTTPStatus.OK
+    status_code = OK
     return response, status_code
 
 
