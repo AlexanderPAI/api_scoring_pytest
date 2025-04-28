@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# import abc
 import datetime
 import hashlib
+import http
 import json
 import logging
 import uuid
 from argparse import ArgumentParser
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Any
+
+from src.scoring import get_interests, get_score
 
 SALT = "Otus"
 ADMIN_LOGIN = "admin"
@@ -36,58 +39,131 @@ GENDERS = {
 }
 
 
-class CharField(object):
-    pass
+# По сути каждое поле - это дескриптор атрибута класса Запроса
 
 
-class ArgumentsField(object):
-    pass
+class Field:
+
+    def __init__(
+        self,
+        required: bool = False,
+        nullable: bool = True,
+    ) -> None:
+        self.required = required
+        self.nullable = nullable
+        self.name = None  # name и __set_name__ подсмотрел и упёр
+
+    def __set_name__(self, owner, name) -> None:
+        self.name = name
+
+    def __set__(self, instance, value) -> None:
+        self.validate(value)
+        instance.__dict__[self.name] = value
+
+    def validate(self, value) -> None:
+        if value is None:
+            if self.required:
+                raise ValueError(f"Field {self.name} is required")
+            if not self.nullable:
+                raise ValueError(f"{self.name} isn't nullable")
+        else:
+            self.sub_field_validate(value)
+
+    def sub_field_validate(self, value) -> Any:
+        pass
+
+
+class CharField(Field):
+    # Дескриптор CharField
+    def sub_field_validate(self, value) -> bool:
+        pass
+
+
+class ArgumentsField(Field):
+    # Дескриптор ArgumentsField
+    def sub_field_validate(self, value) -> bool:
+        pass
 
 
 class EmailField(CharField):
-    pass
+    # Дескриптор EmailField
+    def sub_field_validate(self, value) -> bool:
+        pass
 
 
-class PhoneField(object):
-    pass
+class PhoneField(Field):
+    # Дескриптор PhoneField
+    def sub_field_validate(self, value) -> bool:
+        pass
 
 
-class DateField(object):
-    pass
+class DateField(Field):
+    # Дескриптор DateField
+    def sub_field_validate(self, value) -> bool:
+        pass
 
 
-class BirthDayField(object):
-    pass
+class BirthDayField(DateField):
+    # Дескриптор BirthDayField
+    def sub_field_validate(self, value) -> bool:
+        pass
 
 
-class GenderField(object):
-    pass
+class GenderField(Field):
+    # Дескриптор GenderField
+    def sub_field_validate(self, value) -> bool:
+        pass
 
 
-class ClientIDsField(object):
-    pass
+class ClientIDsField(Field):
+    # Дескриптор ClientIDsField
+    def sub_field_validate(self, value) -> bool:
+        pass
 
 
-class ClientsInterestsRequest(object):
-    client_ids = ClientIDsField(required=True)
-    date = DateField(required=False, nullable=True)
+class BaseRequest:
+    def __init__(self, data: dict):
+        # базовый request
+        # проходимся по всем атрибутам (полям) КЛАССА
+        # достаем value через data.get
+        # устанавливаем у Request'a значение {value} атрибуту {field_name}
+        for field_name, field in self.__class__.__dict__.items():
+            if not isinstance(
+                field, property
+            ):  # так как is_admin у OnlineScoreRequest тоже попадет в __dict__ класса, а мы не хотим делать ему сеттер
+                value = data.get(field_name)
+                setattr(self, field_name, value)
+
+    def to_dict(self):
+        return {
+            attr: value
+            for attr, value in self.__dict__.items()
+            if not attr.startswith("__")
+        }
 
 
-class OnlineScoreRequest(object):
+class MethodRequest(BaseRequest):
+    # Поля - это тупо атрибуты класса, поэтому они попадут в __class__.__dict__ у BaseRequest
+    # Типы полей - это дескрипторы атрибутов класса
+    account = CharField(required=False, nullable=True)
+    login = CharField(required=True, nullable=True)
+    token = CharField(required=True, nullable=True)
+    arguments = ArgumentsField(required=True, nullable=True)
+    method = CharField(required=True, nullable=False)
+
+
+class ClientsInterestsRequest(MethodRequest):
+    client_ids: list[int] = ClientIDsField(required=True)
+    date: str = DateField(required=False, nullable=True)
+
+
+class OnlineScoreRequest(MethodRequest):
     first_name = CharField(required=False, nullable=True)
     last_name = CharField(required=False, nullable=True)
     email = EmailField(required=False, nullable=True)
     phone = PhoneField(required=False, nullable=True)
     birthday = BirthDayField(required=False, nullable=True)
     gender = GenderField(required=False, nullable=True)
-
-
-class MethodRequest(object):
-    account = CharField(required=False, nullable=True)
-    login = CharField(required=True, nullable=True)
-    token = CharField(required=True, nullable=True)
-    arguments = ArgumentsField(required=True, nullable=True)
-    method = CharField(required=True, nullable=False)
 
     @property
     def is_admin(self):
@@ -106,8 +182,33 @@ def check_auth(request):
     return digest == request.token
 
 
+def clients_interests_method(request_obj, ctx, store):
+    request_obj = ClientsInterestsRequest(request_obj.arguments)
+    response = {
+        client_id: get_interests(store, client_id)
+        for client_id in request_obj.client_ids
+    }
+    status_code = http.HTTPStatus.OK
+    return response, status_code
+
+
+def online_score_method(request_obj, ctx, store):
+    request_obj = OnlineScoreRequest(request_obj.arguments)
+    response = {"score": get_score(store, **request_obj.to_dict())}
+    status_code = http.HTTPStatus.OK
+    return response, status_code
+
+
 def method_handler(request, ctx, store):
-    response, code = None, None
+    methods = {
+        "clients_interests": clients_interests_method,
+        "online_score": online_score_method,
+    }
+
+    request_body = request.get("body")
+    request_obj = MethodRequest(request_body)
+
+    response, code = methods.get(request_body.get("method"))(request_obj, ctx, store)
     return response, code
 
 
