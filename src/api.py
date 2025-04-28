@@ -180,6 +180,10 @@ class MethodRequest(BaseRequest):
     arguments: dict[str, Any] = ArgumentsField(required=True, nullable=True)
     method: str = CharField(required=True, nullable=False)
 
+    @property
+    def is_admin(self):
+        return self.login == ADMIN_LOGIN
+
 
 class ClientsInterestsRequest(BaseRequest):
     client_ids: list[int] = ClientIDsField(required=True)
@@ -193,10 +197,6 @@ class OnlineScoreRequest(BaseRequest):
     phone: str | int = PhoneField(required=False, nullable=True)
     birthday: str = BirthDayField(required=False, nullable=True)
     gender: int = GenderField(required=False, nullable=True)
-
-    @property
-    def is_admin(self):
-        return self.login == ADMIN_LOGIN
 
     def validate(self):
         if not (
@@ -226,20 +226,40 @@ def check_auth(request):
 
 
 def online_score_method(request_obj, ctx, store):
-    request_obj = OnlineScoreRequest(request_obj.arguments)
-    response = {"score": get_score(store, **request_obj.to_dict())}
-    status_code = OK
-    return response, status_code
+    try:
+        online_score_request_obj = OnlineScoreRequest(request_obj.arguments)
+
+        if not request_obj.is_admin:
+            response = {"score": get_score(store, **online_score_request_obj.to_dict())}
+        else:
+            response = {"score": ADMIN_SALT}
+
+        ctx["has"] = []
+        for field, value in request_obj.__dict__.items():
+            if value is not None:
+                ctx["has"].append(field)
+        for field, value in online_score_request_obj.__dict__.items():
+            if value is not None:
+                ctx["has"].append(field)
+
+        return response, OK
+    except ValueError as e:
+        return str(e), INVALID_REQUEST
 
 
 def clients_interests_method(request_obj, ctx, store):
-    request_obj = ClientsInterestsRequest(request_obj.arguments)
-    response = {
-        client_id: get_interests(store, client_id)
-        for client_id in request_obj.client_ids
-    }
-    status_code = OK
-    return response, status_code
+    try:
+        clients_interests_request_obj = ClientsInterestsRequest(request_obj.arguments)
+        response = {
+            client_id: get_interests(store, client_id)
+            for client_id in clients_interests_request_obj.client_ids
+        }
+
+        ctx["nclients"] = len(clients_interests_request_obj.client_ids)
+
+        return response, OK
+    except ValueError as e:
+        return str(e), INVALID_REQUEST
 
 
 def method_handler(request, ctx, store):
