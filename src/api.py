@@ -226,52 +226,62 @@ def check_auth(request):
 
 
 def online_score_method(request_obj, ctx, store):
-    try:
-        online_score_request_obj = OnlineScoreRequest(request_obj.arguments)
+    online_score_request_obj = OnlineScoreRequest(request_obj.arguments)
 
-        if not request_obj.is_admin:
-            response = {"score": get_score(store, **online_score_request_obj.to_dict())}
-        else:
-            response = {"score": ADMIN_SALT}
+    if not request_obj.is_admin:
+        response = {"score": get_score(store, **online_score_request_obj.to_dict())}
+    else:
+        response = {"score": ADMIN_SALT}
 
-        ctx["has"] = []
-        for field, value in request_obj.__dict__.items():
-            if value is not None:
-                ctx["has"].append(field)
-        for field, value in online_score_request_obj.__dict__.items():
-            if value is not None:
-                ctx["has"].append(field)
+    ctx["has"] = []
+    for field, value in request_obj.__dict__.items():
+        if value is not None:
+            ctx["has"].append(field)
+    for field, value in online_score_request_obj.__dict__.items():
+        if value is not None:
+            ctx["has"].append(field)
 
-        return response, OK
-    except ValueError as e:
-        return str(e), INVALID_REQUEST
+    return response, OK
 
 
 def clients_interests_method(request_obj, ctx, store):
-    try:
-        clients_interests_request_obj = ClientsInterestsRequest(request_obj.arguments)
-        response = {
-            client_id: get_interests(store, client_id)
-            for client_id in clients_interests_request_obj.client_ids
-        }
+    clients_interests_request_obj = ClientsInterestsRequest(request_obj.arguments)
+    response = {
+        client_id: get_interests(store, client_id)
+        for client_id in clients_interests_request_obj.client_ids
+    }
 
-        ctx["nclients"] = len(clients_interests_request_obj.client_ids)
+    ctx["nclients"] = len(clients_interests_request_obj.client_ids)
 
-        return response, OK
-    except ValueError as e:
-        return str(e), INVALID_REQUEST
+    return response, OK
 
 
 def method_handler(request, ctx, store):
-    methods = {
-        "clients_interests": clients_interests_method,
-        "online_score": online_score_method,
-    }
+    try:
+        methods = {
+            "clients_interests": clients_interests_method,
+            "online_score": online_score_method,
+        }
 
-    request_body = request.get("body")
-    request_obj = MethodRequest(request_body)
-    response, code = methods.get(request_body.get("method"))(request_obj, ctx, store)
-    return response, code
+        request_body = request.get("body")
+        request_obj = MethodRequest(request_body)
+
+        if not check_auth(request_obj):
+            response, code = "Forbidden", FORBIDDEN
+            return response, code
+
+        method = request_body.get("method")
+        if method and method in methods.keys():
+            response, code = methods.get(request_body.get("method"))(
+                request_obj, ctx, store
+            )
+            return response, code
+        else:
+            response, code = "The method was not found", INVALID_REQUEST
+            return response, code
+
+    except ValueError as e:
+        return str(e), INVALID_REQUEST
 
 
 class MainHTTPHandler(BaseHTTPRequestHandler):
