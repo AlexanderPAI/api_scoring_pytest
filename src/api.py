@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# import abc
+import abc
 import datetime
 import hashlib
 import json
@@ -9,6 +9,7 @@ import logging
 import uuid
 from argparse import ArgumentParser
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Any
 
 SALT = "Otus"
 ADMIN_LOGIN = "admin"
@@ -36,36 +37,56 @@ GENDERS = {
 }
 
 
-class CharField(object):
-    pass
+class BaseField(abc.ABC):
+    def __init__(
+        self,
+        required: bool,
+        nullable: bool = False,
+    ):
+        self.required = required
+        self.nullable = nullable
+        self.value: Any
+
+    @abc.abstractmethod
+    def _validate(self, value) -> bool: ...
 
 
-class ArgumentsField(object):
-    pass
+class CharField(BaseField):
+    def _validate(self, value) -> bool:
+        pass
+
+
+class ArgumentsField(BaseField):
+    def _validate(self, value) -> bool:
+        pass
 
 
 class EmailField(CharField):
     pass
 
 
-class PhoneField(object):
+class PhoneField(BaseField):
+    def _validate(self, value) -> bool:
+        pass
+
+
+class DateField(BaseField):
+    def _validate(self, value) -> bool:
+        pass
+
+
+class BirthDayField(DateField):
     pass
 
 
-class DateField(object):
-    pass
+class GenderField(BaseField):
+    def _validate(self, value) -> bool:
+        pass
 
 
-class BirthDayField(object):
-    pass
-
-
-class GenderField(object):
-    pass
-
-
-class ClientIDsField(object):
-    pass
+class ClientIDsField(BaseField):
+    def _validate(self, value) -> bool:
+        pass
 
 
 class ClientsInterestsRequest(object):
