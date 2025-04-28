@@ -6,10 +6,10 @@ import hashlib
 import http
 import json
 import logging
+import re
 import uuid
 from argparse import ArgumentParser
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Any
 
 from src.scoring import get_interests, get_score
 
@@ -39,7 +39,7 @@ GENDERS = {
 }
 
 
-# По сути каждое поле - это дескриптор атрибута класса Запроса
+# По сути каждое Field - это дескриптор атрибута класса Запроса
 
 
 class Field:
@@ -69,56 +69,85 @@ class Field:
         else:
             self.sub_field_validate(value)
 
-    def sub_field_validate(self, value) -> Any:
+    def sub_field_validate(self, value) -> None:
         pass
 
 
 class CharField(Field):
-    # Дескриптор CharField
-    def sub_field_validate(self, value) -> bool:
-        pass
+    def sub_field_validate(self, value) -> None:
+        if not isinstance(value, str):
+            raise ValueError(f'Field "{self.name}" must be a string')
 
 
 class ArgumentsField(Field):
-    # Дескриптор ArgumentsField
-    def sub_field_validate(self, value) -> bool:
-        pass
+    def sub_field_validate(self, value) -> None:
+        if not isinstance(value, dict):
+            raise ValueError(f'Field "{self.name}" must be a dictionary')
 
 
 class EmailField(CharField):
-    # Дескриптор EmailField
-    def sub_field_validate(self, value) -> bool:
-        pass
+    REGEX_EMAIL = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+
+    def sub_field_validate(self, value) -> None:
+        super().sub_field_validate(value)
+        if not re.match(self.REGEX_EMAIL, value):
+            raise ValueError(f'Field "{self.name} must be email"')
 
 
 class PhoneField(Field):
-    # Дескриптор PhoneField
-    def sub_field_validate(self, value) -> bool:
-        pass
+    REGEX_PHONE_NUMBER = r"^7\d{10}$"
+
+    def sub_field_validate(self, value) -> None:
+
+        if not isinstance(value, str | int):
+            raise ValueError(f'Field "{self.name}" must be number or string')
+
+        if isinstance(value, int):
+            value = str(value)
+
+        if not re.match(self.REGEX_PHONE_NUMBER, value):
+            raise ValueError(
+                f'Field "{self.name}" must starts with "7" and be no longer than 11 characters'
+            )
 
 
 class DateField(Field):
-    # Дескриптор DateField
-    def sub_field_validate(self, value) -> bool:
-        pass
+    REGEX_DATE = r"^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])\.\d{4}$"
+
+    def sub_field_validate(self, value) -> None:
+        if not re.match(self.REGEX_DATE, value):
+            raise ValueError(f'Field "{self.name}" must be in the DD.MM.YYYY format')
 
 
 class BirthDayField(DateField):
-    # Дескриптор BirthDayField
-    def sub_field_validate(self, value) -> bool:
-        pass
+    MAX_AGE = 70
+
+    def sub_field_validate(self, value) -> None:
+        super().sub_field_validate(value)
+        birth_date = datetime.datetime.strptime(value, "%d.%m.%Y").year
+        date_now = datetime.datetime.now().year
+        if date_now - birth_date > 70:
+            raise ValueError(
+                f"Haha, {date_now - birth_date} years old, don't lie, people don't live that long."
+            )
 
 
 class GenderField(Field):
-    # Дескриптор GenderField
-    def sub_field_validate(self, value) -> bool:
-        pass
+    VALUES = [UNKNOWN, MALE, FEMALE]
+
+    def sub_field_validate(self, value) -> None:
+        if value not in self.VALUES:
+            raise ValueError(
+                f'Field "{self.name}" must be 0 - UNKNOWN, 1 - MALE, 2 - FEMALE'
+            )
 
 
 class ClientIDsField(Field):
-    # Дескриптор ClientIDsField
     def sub_field_validate(self, value) -> bool:
-        pass
+        if not isinstance(value, list) and all(
+            isinstance(client_id, int) for client_id in value
+        ):
+            raise ValueError(f'Field "{self.name}" must be list of integers')
 
 
 class BaseRequest:
@@ -207,7 +236,6 @@ def method_handler(request, ctx, store):
 
     request_body = request.get("body")
     request_obj = MethodRequest(request_body)
-
     response, code = methods.get(request_body.get("method"))(request_obj, ctx, store)
     return response, code
 
