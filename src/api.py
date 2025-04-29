@@ -48,7 +48,7 @@ class Field:
     def __init__(
         self,
         required: bool = False,
-        nullable: bool = True,
+        nullable: bool = False,
     ) -> None:
         self.required = required
         self.nullable = nullable
@@ -62,13 +62,16 @@ class Field:
         instance.__dict__[self.name] = value
 
     def validate(self, value) -> None:
-        if value is None:
-            if self.required:
-                raise ValueError(f"Field {self.name} is required")
-            if not self.nullable:
+        match value:
+            case None:
+                if self.required:
+                    raise ValueError(f"Field {self.name} is required")
+                if not self.nullable:
+                    raise ValueError(f"{self.name} isn't nullable")
+            case "" | () | {} | [] if not self.nullable:
                 raise ValueError(f"{self.name} isn't nullable")
-        else:
-            self.sub_field_validate(value)
+            case _:
+                self.sub_field_validate(value)
 
     def sub_field_validate(self, value) -> None:
         pass
@@ -145,7 +148,7 @@ class GenderField(Field):
 
 class ClientIDsField(Field):
     def sub_field_validate(self, value) -> None:
-        if not isinstance(value, list) and all(
+        if not isinstance(value, list) or not all(
             isinstance(client_id, int) for client_id in value
         ):
             raise ValueError(f'Field "{self.name}" must be list of integers')
