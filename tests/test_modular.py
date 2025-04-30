@@ -1,6 +1,6 @@
 import unittest
 
-import api  # предполагается, что api.py содержит метод method_handler
+import src.api  # предполагается, что api.py содержит метод method_handler
 
 
 class TestSuite(unittest.TestCase):
