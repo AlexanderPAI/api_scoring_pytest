@@ -1,0 +1,55 @@
+import logging
+from contextlib import contextmanager
+from typing import Generator
+
+import redis
+
+
+class Store:
+    """Redis storage"""
+
+    def __init__(
+        self,
+        redis_host: str = "host.docker.internal",
+        redis_port: int = 6379,
+    ) -> None:
+        self.redis_host = redis_host
+        self.redis_port = redis_port
+
+    @contextmanager
+    def redis_connection(self) -> Generator[redis.Redis, None, None]:
+        """Context manager for 'with'"""
+        conn = redis.Redis(
+            host=self.redis_host, port=self.redis_port, decode_responses=True
+        )
+        try:
+            yield conn
+        finally:
+            conn.close()
+
+    def healthcheck(self) -> None:
+        """Service func for healthcheck redis storage"""
+        with self.redis_connection() as r:
+            logging.info(f"Redis is alive: {r.ping()}")
+
+    def set(self, i_cid: str, field: str, value: str) -> None:
+        """Set to persistent redis storage"""
+        # нужен, чтобы наполнить redis тестовыми данными
+        with self.redis_connection() as r:
+            r.hset(i_cid, field, value)
+
+    def get(self, i_cid: str) -> str:
+        """Get from persistent redis storage"""
+        with self.redis_connection() as r:
+            return r.hget(i_cid, "interests")
+
+    def cache_get(self, key: str) -> None:
+        """Get cache from redis storage"""
+        with self.redis_connection() as r:
+            return r.hget(f"cache:{key}", "score")
+
+    def cache_set(self, key: str, score: float, tll: int | float) -> None:
+        """Set cache to redis storage"""
+        with self.redis_connection() as r:
+            r.hset(f"cache:{key}", mapping={"score": score})
+            r.expire(f"cache:{key}", tll)

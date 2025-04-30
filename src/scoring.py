@@ -6,9 +6,20 @@ from typing import Optional
 
 def get_score(
     store,
-    phone: Optional[str] = None,
+    phone: Optional[
+        str | int
+    ] = None,  # по условиям ТЗ phone - может быть и строкой и числом
     email: Optional[str] = None,
-    birthday: Optional[datetime] = None,
+    birthday: Optional[
+        datetime
+    ] = None,  # Зачем нам в get_score принимать дату именно и только в datetime,
+    # если в запросе она всегда передается в str, в DateField проверяется формат
+    # через регулярку, а внутри get_store мы все равно из datetime
+    # преобразовываем ее в str?? Зачем преобразование ради преобразования??
+    # Если мы предполагаем, что get_store все-таки должен уметь принимать datetime
+    # (например, если предполагаем универсальность использования get_score), тогда
+    # можно и сделать аннотацию Optional [datetime | str] - чтобы умел принимать
+    # и то, и то.
     gender: Optional[int] = None,
     first_name: Optional[str] = None,
     last_name: Optional[str] = None,
@@ -16,8 +27,13 @@ def get_score(
     key_parts = [
         first_name or "",
         last_name or "",
-        phone or "",
-        birthday.strftime("%Y%m%d") if birthday else "",
+        str(phone) or "",
+        (
+            birthday.strftime("%Y%m%d")
+            if birthday and isinstance(birthday, datetime)
+            else ""
+        ),
+        # см комментарий к аргументу birthday выше
     ]
     key = "uid:" + hashlib.md5("".join(key_parts).encode("utf-8")).hexdigest()
 
@@ -42,6 +58,6 @@ def get_score(
     return score
 
 
-def get_interests(store, cid: str) -> list:
+def get_interests(store, cid: int) -> list:
     r = store.get(f"i:{cid}")
     return json.loads(r) if r else []

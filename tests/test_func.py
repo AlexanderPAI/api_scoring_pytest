@@ -4,6 +4,7 @@ import hashlib
 import unittest
 
 import src.api as api
+from src.store import Store
 
 
 def cases(cases):
@@ -23,7 +24,7 @@ class TestSuite(unittest.TestCase):
     def setUp(self):
         self.context = {}
         self.headers = {}
-        self.settings = {}
+        self.settings = Store()
 
     def get_response(self, request):
         return api.method_handler(
@@ -234,6 +235,23 @@ class TestSuite(unittest.TestCase):
         response, code = self.get_response(request)
         self.assertEqual(api.OK, code, arguments)
         self.assertEqual(len(arguments["client_ids"]), len(response))
+
+        for v in response.values():
+            print("=====")
+            print(response.values())
+            print(bool(v))
+            print(isinstance(v, list))
+            print(all(isinstance(i, (bytes, str)) for i in v))
+            print(
+                all(
+                    v
+                    and isinstance(v, list)
+                    and all(isinstance(i, (bytes, str)) for i in v)
+                    for v in response.values()
+                )
+            )
+            print("=====")
+
         self.assertTrue(
             all(
                 v
