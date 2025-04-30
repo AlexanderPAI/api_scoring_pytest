@@ -4,6 +4,7 @@ import hashlib
 import unittest
 
 import src.api as api
+from src.store import Store
 
 
 def cases(cases):
@@ -23,7 +24,7 @@ class TestSuite(unittest.TestCase):
     def setUp(self):
         self.context = {}
         self.headers = {}
-        self.settings = {}
+        self.settings = Store()
 
     def get_response(self, request):
         return api.method_handler(

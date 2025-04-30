@@ -14,5 +14,7 @@ RUN poetry config virtualenvs.create false && poetry install --no-root
 FROM base AS build
 
 COPY src/ src/
+COPY tests/ tests/
+COPY scripts/ scripts/
 
 CMD ["python3", "-m", "src.api"]

@@ -13,6 +13,7 @@ from types import FunctionType
 from typing import Any
 
 from src.scoring import get_interests, get_score
+from src.store import Store
 
 SALT = "Otus"
 ADMIN_LOGIN = "admin"
@@ -101,7 +102,7 @@ class EmailField(CharField):
 class PhoneField(Field):
     REGEX_PHONE_NUMBER = r"^7\d{10}$"
 
-    def sub_field_validate(self, value) -> None:
+    def sub_field_validate(self, value) -> str:
 
         if not isinstance(value, str | int):
             raise ValueError(f'Field "{self.name}" must be number or string')
@@ -113,6 +114,7 @@ class PhoneField(Field):
             raise ValueError(
                 f'Field "{self.name}" must starts with "7" and be no longer than 11 characters'
             )
+        return value
 
 
 class DateField(Field):
@@ -283,7 +285,7 @@ def method_handler(request, ctx, store):
 
 class MainHTTPHandler(BaseHTTPRequestHandler):
     router = {"method": method_handler}
-    store = None
+    store = Store()
 
     def get_request_id(self, headers):
         return headers.get("HTTP_X_REQUEST_ID", uuid.uuid4().hex)
@@ -297,7 +299,6 @@ class MainHTTPHandler(BaseHTTPRequestHandler):
             request = json.loads(data_string)
         except Exception:
             code = BAD_REQUEST
-
         if request:
             path = self.path.strip("/")
             logging.info("%s: %s %s" % (self.path, data_string, context["request_id"]))
@@ -320,7 +321,6 @@ class MainHTTPHandler(BaseHTTPRequestHandler):
         else:
             r = {"error": response or ERRORS.get(code, "Unknown Error"), "code": code}
         context.update(r)
-        logging.info(context)
         self.wfile.write(json.dumps(r).encode("utf-8"))
         return
 
