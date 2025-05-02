@@ -2,6 +2,8 @@ import unittest
 
 import src.api as api  # предполагается, что api.py содержит метод method_handler
 
+# import pytest
+
 
 class TestSuite(unittest.TestCase):
     def setUp(self):

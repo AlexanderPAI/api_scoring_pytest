@@ -6,20 +6,9 @@ from typing import Optional
 
 def get_score(
     store,
-    phone: Optional[
-        str | int
-    ] = None,  # по условиям ТЗ phone - может быть и строкой и числом
+    phone: Optional[str | int] = None,
     email: Optional[str] = None,
-    birthday: Optional[
-        datetime
-    ] = None,  # Зачем нам в get_score принимать дату именно и только в datetime,
-    # если в запросе она всегда передается в str, в DateField проверяется формат
-    # через регулярку, а внутри get_store мы все равно из datetime
-    # преобразовываем ее в str?? Зачем преобразование ради преобразования??
-    # Если мы предполагаем, что get_store все-таки должен уметь принимать datetime
-    # (например, если предполагаем универсальность использования get_score), тогда
-    # можно и сделать аннотацию Optional [datetime | str] - чтобы умел принимать
-    # и то, и то.
+    birthday: Optional[str | datetime] = None,
     gender: Optional[int] = None,
     first_name: Optional[str] = None,
     last_name: Optional[str] = None,
@@ -31,9 +20,8 @@ def get_score(
         (
             birthday.strftime("%Y%m%d")
             if birthday and isinstance(birthday, datetime)
-            else ""
+            else (birthday if birthday else "")
         ),
-        # см комментарий к аргументу birthday выше
     ]
     key = "uid:" + hashlib.md5("".join(key_parts).encode("utf-8")).hexdigest()
 
