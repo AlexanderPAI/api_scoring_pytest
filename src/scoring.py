@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 from datetime import datetime
 from typing import Optional
 
@@ -13,17 +14,22 @@ def get_score(
     first_name: Optional[str] = None,
     last_name: Optional[str] = None,
 ) -> float:
+    # в ключе нужно указывать все поля, иначе у phone + email и phone без email будет одинаковый хэш
     key_parts = [
-        first_name or "",
-        last_name or "",
         str(phone) or "",
+        email or "",
         (
             birthday.strftime("%Y%m%d")
             if birthday and isinstance(birthday, datetime)
             else (birthday if birthday else "")
         ),
+        str(gender) or "",
+        first_name or "",
+        last_name or "",
     ]
     key = "uid:" + hashlib.md5("".join(key_parts).encode("utf-8")).hexdigest()
+    logging.info("KEY")
+    logging.info(key)
 
     # Try to get from cache
     score = store.cache_get(key)

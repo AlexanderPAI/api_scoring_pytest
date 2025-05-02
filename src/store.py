@@ -27,14 +27,15 @@ class Store:
         finally:
             conn.close()
 
-    def healthcheck(self) -> None:
+    def healthcheck(self):
         """Service func for healthcheck redis storage"""
         with self.redis_connection() as r:
-            logging.info(f"Redis is alive: {r.ping()}")
+            result = r.ping()
+            logging.info(f"Redis is alive: {result}")
+            return result
 
     def set(self, i_cid: str, field: str, value: str) -> None:
         """Set to persistent redis storage"""
-        # нужен, чтобы наполнить redis тестовыми данными
         with self.redis_connection() as r:
             r.hset(i_cid, field, value)
 
@@ -43,7 +44,7 @@ class Store:
         with self.redis_connection() as r:
             return r.hget(i_cid, "interests")
 
-    def cache_get(self, key: str) -> None:
+    def cache_get(self, key: str):
         """Get cache from redis storage"""
         with self.redis_connection() as r:
             return r.hget(f"cache:{key}", "score")
