@@ -28,13 +28,14 @@ def get_score(
         last_name or "",
     ]
     key = "uid:" + hashlib.md5("".join(key_parts).encode("utf-8")).hexdigest()
-    logging.info("KEY")
-    logging.info(key)
 
     # Try to get from cache
     score = store.cache_get(key)
     if score is not None:
+        logging.info("Score was got from cache storage")
         return float(score)
+
+    logging.info("Score wasn't got from cache storage")
 
     # Calculate score
     score = 0.0

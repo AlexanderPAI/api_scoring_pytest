@@ -1,5 +1,14 @@
 import pytest
 
+# test_data
+storage_interests = {
+    "i:1": '["cars", "cinema"]',
+    "i:2": '["cinema", "music"]',
+    "i:3": '["pets", "cars"]',
+    "i:4": '["cars", "geek"]',
+}
+
+# params for tests
 params_get_score = [
     pytest.param(
         {"phone": "79175002040", "email": "stupnikov@otus.ru"}, 3.0, id="Phone + Email"
@@ -90,4 +99,12 @@ params_get_score = [
         5.0,
         id="Phone + Email + Birthday + Gender + FirstName + LastName",
     ),
+]
+
+
+params_get_interests = [
+    pytest.param(1, ["cars", "cinema"], id="client_id=1"),
+    pytest.param(2, ["cinema", "music"], id="client_id=2"),
+    pytest.param(3, ["pets", "cars"], id="client_id=3"),
+    pytest.param(4, ["cars", "geek"], id="client_id=4"),
 ]
