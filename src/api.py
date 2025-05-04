@@ -12,6 +12,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from types import FunctionType
 from typing import Any
 
+import redis
+
 from src.scoring import get_interests, get_score
 from src.store import Store
 
@@ -238,14 +240,16 @@ def online_score_method(request_obj, ctx, store):
 
 def clients_interests_method(request_obj, ctx, store):
     clients_interests_request_obj = ClientsInterestsRequest(request_obj.arguments)
-    response = {
-        client_id: get_interests(store, client_id)
-        for client_id in clients_interests_request_obj.client_ids
-    }
+    try:
+        response = {
+            client_id: get_interests(store, client_id)
+            for client_id in clients_interests_request_obj.client_ids
+        }
 
-    ctx["nclients"] = len(clients_interests_request_obj.client_ids)
-
-    return response, OK
+        ctx["nclients"] = len(clients_interests_request_obj.client_ids)
+        return response, OK
+    except redis.RedisError:
+        return "Connection to store failed", INTERNAL_ERROR
 
 
 def method_handler(request, ctx, store):
