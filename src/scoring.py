@@ -1,46 +1,41 @@
 import hashlib
 import json
+import logging
 from datetime import datetime
 from typing import Optional
 
 
 def get_score(
     store,
-    phone: Optional[
-        str | int
-    ] = None,  # по условиям ТЗ phone - может быть и строкой и числом
+    phone: Optional[str | int] = None,
     email: Optional[str] = None,
-    birthday: Optional[
-        datetime
-    ] = None,  # Зачем нам в get_score принимать дату именно и только в datetime,
-    # если в запросе она всегда передается в str, в DateField проверяется формат
-    # через регулярку, а внутри get_store мы все равно из datetime
-    # преобразовываем ее в str?? Зачем преобразование ради преобразования??
-    # Если мы предполагаем, что get_store все-таки должен уметь принимать datetime
-    # (например, если предполагаем универсальность использования get_score), тогда
-    # можно и сделать аннотацию Optional [datetime | str] - чтобы умел принимать
-    # и то, и то.
+    birthday: Optional[str | datetime] = None,
     gender: Optional[int] = None,
     first_name: Optional[str] = None,
     last_name: Optional[str] = None,
 ) -> float:
+    # в ключе нужно указывать все поля, иначе у phone + email и phone без email будет одинаковый хэш
     key_parts = [
-        first_name or "",
-        last_name or "",
         str(phone) or "",
+        email or "",
         (
             birthday.strftime("%Y%m%d")
             if birthday and isinstance(birthday, datetime)
-            else ""
+            else (birthday if birthday else "")
         ),
-        # см комментарий к аргументу birthday выше
+        str(gender) or "",
+        first_name or "",
+        last_name or "",
     ]
     key = "uid:" + hashlib.md5("".join(key_parts).encode("utf-8")).hexdigest()
 
     # Try to get from cache
     score = store.cache_get(key)
     if score is not None:
+        logging.info("Score was got from cache storage")
         return float(score)
+
+    logging.info("Score wasn't got from cache storage")
 
     # Calculate score
     score = 0.0
