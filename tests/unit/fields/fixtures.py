@@ -1,6 +1,16 @@
+import datetime
+
 import pytest
 
-from src.api import ArgumentsField, CharField, DateField, EmailField, Field, PhoneField
+from src.api import (
+    ArgumentsField,
+    BirthDayField,
+    CharField,
+    DateField,
+    EmailField,
+    Field,
+    PhoneField,
+)
 
 fields_positive_fixtures = [
     pytest.param(
@@ -62,6 +72,18 @@ fields_positive_fixtures = [
         {"required": True, "nullable": False},
         "20.01.2025",
         id="DateField: value is 20.01.2025",
+    ),
+    pytest.param(
+        BirthDayField,
+        {"required": True, "nullable": False},
+        (datetime.datetime.now() - datetime.timedelta(days=365 * 69)).strftime(
+            "%d.%m.%Y"
+        ),
+        id="BirthDayField: value is {}".format(
+            (datetime.datetime.now() - datetime.timedelta(days=365 * 70)).strftime(
+                "%d.%m.%Y"
+            )
+        ),
     ),
 ]
 
@@ -255,5 +277,29 @@ fields_negative_fixtures = [
         "20/01/2025",
         "{field_name} must be in the DD.MM.YYYY format",
         id="DateField: value is 20/01/2025",
+    ),
+    pytest.param(
+        BirthDayField,
+        {"required": True, "nullable": False},
+        (datetime.datetime.now() + datetime.timedelta(days=365)).strftime("%d.%m.%Y"),
+        "{field_name} must be positive amount years",
+        id="BirthDayField: value is {}".format(
+            (datetime.datetime.now() + datetime.timedelta(days=365)).strftime(
+                "%d.%m.%Y"
+            )
+        ),
+    ),
+    pytest.param(
+        BirthDayField,
+        {"required": True, "nullable": False},
+        (datetime.datetime.now() - datetime.timedelta(days=365 * 71)).strftime(
+            "%d.%m.%Y"
+        ),
+        "{field_name} too many years old, must be <= 70",
+        id="BirthDayField: value is {}".format(
+            (datetime.datetime.now() - datetime.timedelta(days=365 * 70)).strftime(
+                "%d.%m.%Y"
+            )
+        ),
     ),
 ]

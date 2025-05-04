@@ -130,9 +130,9 @@ class BirthDayField(DateField):
         birth_date = datetime.datetime.strptime(value, "%d.%m.%Y").year
         date_now = datetime.datetime.now().year
         if date_now - birth_date > 70:
-            raise ValueError(
-                f"Haha, {date_now - birth_date} years old, don't lie, people don't live that long."
-            )
+            raise ValueError(f"{self.name} too many years old, must be <= 70")
+        if date_now - birth_date < 0:
+            raise ValueError(f"{self.name} must be positive amount years")
 
 
 class GenderField(Field):
