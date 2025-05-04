@@ -3,6 +3,7 @@ import json
 
 import pytest
 
+from src.scoring import get_interests, get_score
 from src.store import Store
 
 
@@ -46,3 +47,31 @@ def test_store_set_and_get(cid, interests, expected):
     store = Store()
     store.set(f"i:{cid}", "interests", str(interests))
     assert store.get("i:1") == expected
+
+
+@pytest.mark.parametrize(
+    "attrs, expected",
+    [
+        pytest.param(
+            {
+                "phone": "79998887733",
+                "email": "stupnikov@otus.ru",
+                "birthday": "01.01.2000",
+                "gender": 1,
+                "first_name": "Станислав",
+                "last_name": "Ступников",
+            },
+            5.0,
+            id="POSITIVE Store: get_score with store",
+        )
+    ],
+)
+def test_get_score_with_store(attrs, expected):
+    store = Store()
+    assert get_score(store, **attrs) == expected
+
+
+def test_get_interests_with_store():
+    store = Store()
+    store.set("i:5", "interests", json.dumps(["travel", "geek"]))
+    assert get_interests(store, 5) == ["travel", "geek"]
