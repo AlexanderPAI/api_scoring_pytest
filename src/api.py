@@ -148,7 +148,7 @@ class ClientIDsField(Field):
         if not isinstance(value, list) or not all(
             isinstance(client_id, int) for client_id in value
         ):
-            raise ValueError(f'Field "{self.name}" must be list of integers')
+            raise ValueError(f"{self.name} must be list of integers")
 
 
 class BaseRequest:

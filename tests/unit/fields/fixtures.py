@@ -6,6 +6,7 @@ from src.api import (
     ArgumentsField,
     BirthDayField,
     CharField,
+    ClientIDsField,
     DateField,
     EmailField,
     Field,
@@ -103,6 +104,12 @@ fields_positive_fixtures = [
         {"required": True, "nullable": False},
         0,
         id="GenderField: value is 2",
+    ),
+    pytest.param(
+        ClientIDsField,
+        {"required": True, "nullable": False},
+        [1, 2, 3, 4],
+        id="ClientIDsField: value is [1, 2, 3, 4]",
     ),
 ]
 
@@ -341,5 +348,26 @@ fields_negative_fixtures = [
         "Three",
         "{field_name} must be 0 - UNKNOWN, 1 - MALE, 2 - FEMALE",
         id="GenderField: value is Three",
+    ),
+    pytest.param(
+        ClientIDsField,
+        {"required": True, "nullable": False},
+        "1, 2, 3, 4",
+        "{field_name} must be list of integers",
+        id='ClientIDsField: value is "1, 2, 3, 4"',
+    ),
+    pytest.param(
+        ClientIDsField,
+        {"required": True, "nullable": False},
+        {"clients_ids": [1, 2, 3, 4]},
+        "{field_name} must be list of integers",
+        id='ClientIDsField: value is {"clients_ids": [1, 2, 3, 4]}',
+    ),
+    pytest.param(
+        ClientIDsField,
+        {"required": True, "nullable": False},
+        ["1", "2", "3", "4"],
+        "{field_name} must be list of integers",
+        id='ClientIDsField: value is ["1", "2", "3", "4"]',
     ),
 ]
