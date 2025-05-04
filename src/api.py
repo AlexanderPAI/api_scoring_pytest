@@ -41,9 +41,6 @@ GENDERS = {
 }
 
 
-# По сути каждое Field - это дескриптор атрибута класса Запроса
-
-
 class Field:
 
     def __init__(
@@ -53,7 +50,7 @@ class Field:
     ) -> None:
         self.required = required
         self.nullable = nullable
-        self.name = None  # name и __set_name__ подсмотрел и упёр
+        self.name = "Field"
 
     def __set_name__(self, owner, name) -> None:
         self.name = name
@@ -66,7 +63,7 @@ class Field:
         match value:
             case None:
                 if self.required:
-                    raise ValueError(f"Field {self.name} is required")
+                    raise ValueError(f"{self.name} is required")
                 if not self.nullable:
                     raise ValueError(f"{self.name} isn't nullable")
             case "" | () | {} | [] if not self.nullable:
@@ -172,10 +169,6 @@ class BaseRequest:
             for attr, value in self.__dict__.items()
             if not attr.startswith("__") and not attr.startswith("_")
         }
-
-
-# Поля - это тупо атрибуты класса, поэтому они попадут в __class__.__dict__ у BaseRequest
-# Типы полей - это дескрипторы атрибутов класса
 
 
 class MethodRequest(BaseRequest):

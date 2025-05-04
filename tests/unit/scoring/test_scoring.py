@@ -4,7 +4,11 @@ import pytest
 
 import src.api as api
 from src.store import Store
-from tests.unit.params import params_get_interests, params_get_score, storage_interests
+from tests.unit.scoring.params import (
+    params_get_interests,
+    params_get_score,
+    storage_interests,
+)
 
 store = MagicMock(spec=Store)
 store.cache_get.return_value = None
