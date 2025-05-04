@@ -1,6 +1,6 @@
 import pytest
 
-from src.api import ArgumentsField, CharField, EmailField, Field
+from src.api import ArgumentsField, CharField, EmailField, Field, PhoneField
 
 fields_positive_fixtures = [
     pytest.param(
@@ -44,6 +44,18 @@ fields_positive_fixtures = [
         {"required": True, "nullable": False},
         "test@test.com",
         id="EmailField: value is test@test.com",
+    ),
+    pytest.param(
+        PhoneField,
+        {"required": True, "nullable": False},
+        "79998887766",
+        id='PhoneField: value is "79998887766"',
+    ),
+    pytest.param(
+        PhoneField,
+        {"required": True, "nullable": False},
+        79998887766,
+        id="PhoneField: value is 79998887766 (int)",
     ),
 ]
 
@@ -174,5 +186,40 @@ fields_negative_fixtures = [
         "test",
         "{field_name} must be email",
         id="EmailField: value is test",
+    ),
+    pytest.param(
+        PhoneField,
+        {"required": True, "nullable": False},
+        "89998887766",
+        '{field_name} must starts with "7" and be no longer than 11 characters',
+        id='PhoneField: value is "89998887766"',
+    ),
+    pytest.param(
+        PhoneField,
+        {"required": True, "nullable": False},
+        "+7-999-888-77-66",
+        '{field_name} must starts with "7" and be no longer than 11 characters',
+        id='PhoneField: value is "+7-999-888-77-66"',
+    ),
+    pytest.param(
+        PhoneField,
+        {"required": True, "nullable": False},
+        "8999888",
+        '{field_name} must starts with "7" and be no longer than 11 characters',
+        id='PhoneField: value is "8999888"',
+    ),
+    pytest.param(
+        PhoneField,
+        {"required": True, "nullable": False},
+        89998887766,
+        '{field_name} must starts with "7" and be no longer than 11 characters',
+        id="PhoneField: value is 89998887766 (int)",
+    ),
+    pytest.param(
+        PhoneField,
+        {"required": True, "nullable": False},
+        8999888.0000,
+        "{field_name} must be number or string",
+        id="PhoneField: value is 8999888.0000 (float)",
     ),
 ]
