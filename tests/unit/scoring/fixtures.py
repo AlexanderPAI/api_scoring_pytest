@@ -1,13 +1,5 @@
 import pytest
 
-# test_data
-storage_interests = {
-    "i:1": '["cars", "cinema"]',
-    "i:2": '["cinema", "music"]',
-    "i:3": '["pets", "cars"]',
-    "i:4": '["cars", "geek"]',
-}
-
 # params for tests
 params_get_score = [
     pytest.param(

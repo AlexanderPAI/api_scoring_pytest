@@ -4,15 +4,12 @@ import pytest
 
 import src.api as api
 from src.store import Store
-from tests.unit.scoring.params import (
-    params_get_interests,
-    params_get_score,
-    storage_interests,
-)
+from tests.unit.scoring.fake_storage import fake_storage
+from tests.unit.scoring.fixtures import params_get_interests, params_get_score
 
 store = MagicMock(spec=Store)
 store.cache_get.return_value = None
-store.get = lambda cid: storage_interests.get(cid)
+store.get = lambda cid: fake_storage.get(cid)
 
 
 @pytest.mark.parametrize(
