@@ -1,3 +1,43 @@
+## Тесты
+
+### Реализовано:
+- store:
+  - поднимается контейнер с Redis-хранилищем
+  - Redis-хранилище задумано как одно хранилище с двумя пространствами: `i` - для хранения `clients_interests`; `cache` - для хранения кеша при запросах с методом `online_score`;
+  - Store - класс для подключения к Redis-хранилищу, взаимодействия с ним;
+  - функционал повторного подключения к Redis и timeout'ы;
+  - скрипт для наполнения Redis тестовыми данными `scripts/fill_redis_for_test.py`
+- Тесты:
+  - unit-тесты:
+    - "функциональные" тесты с прощлого ДЗ перенесены в `tests/functional/`
+    - добавлены тесты классов каждого поля - `tests/unit/fields/`;
+    - добавлены тесты классов запросов - `tests/unit/requests/`;
+    - добавлены тесты scoring-методов - `tests/unit/scoring/`
+  - интеграционные тесты:
+    - тестирование работы get, set, cache_get и cache_set методов Store (класс для взаимодействия с Redis=хранилищем)
+
+## Порядок запуска
+
+### Через make:
+```commandline
+# собрать все необходимые контейнеры и запустить тесты
+# наполнить Redis тестовыми данным
+make test
+```
+
+### Через docker-compose
+```commandline
+# 1. Собрать контейнеры и запустить
+docker-compose up --build -d
+
+# 2. Наполнить Redis тестовыми данными
+docker-compose exec api_scoring python3 -m scripts.fill_redis_for_test
+
+# 3. Запустить тесты
+docker-compose exec api_scoring pytest -v tests/
+```
+
+
 ## Задание
 ### Scoring API Tests
 

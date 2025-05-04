@@ -11,7 +11,7 @@ services:
       - redis
 
   redis:
-    container_name: "redis"
+    container_name: "api-scoring-redis"
     image: redis:latest
     restart: always
     ports:
