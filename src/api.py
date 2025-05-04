@@ -78,7 +78,7 @@ class Field:
 class CharField(Field):
     def sub_field_validate(self, value) -> None:
         if not isinstance(value, str):
-            raise ValueError(f'Field "{self.name}" must be a string')
+            raise ValueError(f"{self.name} must be a string")
 
 
 class ArgumentsField(Field):
