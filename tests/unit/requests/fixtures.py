@@ -56,3 +56,19 @@ method_request_negative_fixtures = [
         id="NEGATIVE MethodRequest: No Token Error",
     ),
 ]
+
+
+clients_interests_request_positive_fixtures = [
+    pytest.param(
+        {"client_ids": [1, 2, 3, 4], "date": "20.07.2017"},
+        id="POSITIVE ClientsInterestsRequest: Valid Data Success",
+    ),
+]
+
+clients_interests_request_negative_fixtures = [
+    pytest.param(
+        {"date": "20.07.2017"},
+        "client_ids is required",
+        id="NEGATIVE MethodRequest: No ClientIDs Error",
+    ),
+]
