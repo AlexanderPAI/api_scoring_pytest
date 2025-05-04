@@ -9,7 +9,7 @@ method_request_positive_fixtures = [
             "token": "xxx",
             "arguments": {},
         },
-        id="MethodRequest: Valid Data Success",
+        id="POSITIVE MethodRequest: Valid Data Success",
     ),
 ]
 
@@ -23,7 +23,7 @@ method_request_negative_fixtures = [
             "arguments": {},
         },
         "account is required",
-        id="MethodRequest: No Account Error",
+        id="NEGATIVE MethodRequest: No Account Error",
     ),
     pytest.param(
         {
@@ -33,7 +33,7 @@ method_request_negative_fixtures = [
             "arguments": {},
         },
         "login is required",
-        id="MethodRequest: No Login Error",
+        id="NEGATIVE MethodRequest: No Login Error",
     ),
     pytest.param(
         {
@@ -43,7 +43,7 @@ method_request_negative_fixtures = [
             "arguments": {},
         },
         "method is required",
-        id="MethodRequest: No Method Error",
+        id="NEGATIVE MethodRequest: No Method Error",
     ),
     pytest.param(
         {
@@ -53,6 +53,6 @@ method_request_negative_fixtures = [
             "arguments": {},
         },
         "token is required",
-        id="MethodRequest: No Token Error",
+        id="NEGATIVE MethodRequest: No Token Error",
     ),
 ]
