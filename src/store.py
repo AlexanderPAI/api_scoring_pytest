@@ -62,7 +62,7 @@ class Store:
     def set(self, i_cid: str, field: str, value: str) -> None:
         """Set to persistent redis storage"""
         with self.redis_connection() as r:
-            r.hset(i_cid, field, value)
+            return r.hset(i_cid, field, value)
 
     def get(self, i_cid: str) -> str:
         """Get from persistent redis storage"""
@@ -77,11 +77,11 @@ class Store:
         except redis.RedisError:
             logging.error("Сouldn't get cache from store")
 
-    def cache_set(self, key: str, score: float, tll: int | float) -> None:
+    def cache_set(self, key: str, score: float, ttl: int | float) -> None:
         """Set cache to redis storage"""
         try:
             with self.redis_connection() as r:
                 r.hset(f"cache:{key}", mapping={"score": score})
-                r.expire(f"cache:{key}", tll)
+                r.expire(f"cache:{key}", ttl)
         except redis.RedisError:
             logging.info("Couldn't set cache to store")
