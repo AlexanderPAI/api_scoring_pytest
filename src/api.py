@@ -60,16 +60,16 @@ class Field:
         instance.__dict__[self.name] = value
 
     def validate(self, value) -> None:
-        match value:
-            case None:
-                if self.required:
-                    raise ValueError(f"{self.name} is required")
-                if not self.nullable:
-                    raise ValueError(f"{self.name} isn't nullable")
-            case "" | () | {} | [] if not self.nullable:
+        # match-case галлюцинирует
+        if value is None:
+            if self.required:
+                raise ValueError(f"{self.name} is required")
+            if not self.nullable:
                 raise ValueError(f"{self.name} isn't nullable")
-            case _:
-                self.sub_field_validate(value)
+        elif value in ("", (), {}, []) and not self.nullable:
+            raise ValueError(f"{self.name} isn't nullable")
+        else:
+            self.sub_field_validate(value)
 
     def sub_field_validate(self, value) -> None:
         pass
@@ -84,7 +84,7 @@ class CharField(Field):
 class ArgumentsField(Field):
     def sub_field_validate(self, value) -> None:
         if not isinstance(value, dict):
-            raise ValueError(f'Field "{self.name}" must be a dictionary')
+            raise ValueError(f"{self.name} must be a dictionary")
 
 
 class EmailField(CharField):

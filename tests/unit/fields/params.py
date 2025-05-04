@@ -97,4 +97,53 @@ char_field_negative_validate = [
         "{field_name} must be a string",
         id="CharField: value is list",
     ),
+    pytest.param(
+        {"required": True, "nullable": False},
+        {"key1": "value1", "key2": "value2"},
+        "{field_name} must be a string",
+        id="CharField: value is dict",
+    ),
+]
+
+
+arguments_field_positive_validate = [
+    pytest.param(
+        {"required": True, "nullable": False},
+        {"key1": "value1", "key2": "value2"},
+        id="ArgumentsField: value is dict",
+    ),
+]
+
+
+arguments_field_negative_validate = [
+    pytest.param(
+        {"required": True, "nullable": False},
+        "test_value",
+        "{field_name} must be a dictionary",
+        id="ArgumentsField: value is str",
+    ),
+    pytest.param(
+        {"required": True, "nullable": False},
+        1,
+        "{field_name} must be a dictionary",
+        id="ArgumentsField: value is int",
+    ),
+    pytest.param(
+        {"required": True, "nullable": False},
+        1.0,
+        "{field_name} must be a dictionary",
+        id="ArgumentsField: value is float",
+    ),
+    pytest.param(
+        {"required": True, "nullable": False},
+        True,
+        "{field_name} must be a dictionary",
+        id="ArgumentsField: value is bool",
+    ),
+    pytest.param(
+        {"required": True, "nullable": False},
+        ["one", "two"],
+        "{field_name} must be a dictionary",
+        id="ArgumentsField: value is list",
+    ),
 ]
