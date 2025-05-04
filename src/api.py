@@ -140,9 +140,7 @@ class GenderField(Field):
 
     def sub_field_validate(self, value) -> None:
         if value not in self.VALUES:
-            raise ValueError(
-                f'Field "{self.name}" must be 0 - UNKNOWN, 1 - MALE, 2 - FEMALE'
-            )
+            raise ValueError(f"{self.name} must be 0 - UNKNOWN, 1 - MALE, 2 - FEMALE")
 
 
 class ClientIDsField(Field):

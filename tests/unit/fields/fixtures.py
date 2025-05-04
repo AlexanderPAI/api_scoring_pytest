@@ -9,6 +9,7 @@ from src.api import (
     DateField,
     EmailField,
     Field,
+    GenderField,
     PhoneField,
 )
 
@@ -84,6 +85,24 @@ fields_positive_fixtures = [
                 "%d.%m.%Y"
             )
         ),
+    ),
+    pytest.param(
+        GenderField,
+        {"required": True, "nullable": False},
+        0,
+        id="GenderField: value is 0",
+    ),
+    pytest.param(
+        GenderField,
+        {"required": True, "nullable": False},
+        0,
+        id="GenderField: value is 1",
+    ),
+    pytest.param(
+        GenderField,
+        {"required": True, "nullable": False},
+        0,
+        id="GenderField: value is 2",
     ),
 ]
 
@@ -301,5 +320,26 @@ fields_negative_fixtures = [
                 "%d.%m.%Y"
             )
         ),
+    ),
+    pytest.param(
+        GenderField,
+        {"required": True, "nullable": False},
+        -1,
+        "{field_name} must be 0 - UNKNOWN, 1 - MALE, 2 - FEMALE",
+        id="GenderField: value is -1",
+    ),
+    pytest.param(
+        GenderField,
+        {"required": True, "nullable": False},
+        3,
+        "{field_name} must be 0 - UNKNOWN, 1 - MALE, 2 - FEMALE",
+        id="GenderField: value is 3",
+    ),
+    pytest.param(
+        GenderField,
+        {"required": True, "nullable": False},
+        "Three",
+        "{field_name} must be 0 - UNKNOWN, 1 - MALE, 2 - FEMALE",
+        id="GenderField: value is Three",
     ),
 ]
