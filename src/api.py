@@ -12,7 +12,10 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from types import FunctionType
 from typing import Any
 
+import redis
+
 from src.scoring import get_interests, get_score
+from src.store import Store
 
 SALT = "Otus"
 ADMIN_LOGIN = "admin"
@@ -40,9 +43,6 @@ GENDERS = {
 }
 
 
-# По сути каждое Field - это дескриптор атрибута класса Запроса
-
-
 class Field:
 
     def __init__(
@@ -52,7 +52,7 @@ class Field:
     ) -> None:
         self.required = required
         self.nullable = nullable
-        self.name = None  # name и __set_name__ подсмотрел и упёр
+        self.name = "Field"
 
     def __set_name__(self, owner, name) -> None:
         self.name = name
@@ -62,16 +62,16 @@ class Field:
         instance.__dict__[self.name] = value
 
     def validate(self, value) -> None:
-        match value:
-            case None:
-                if self.required:
-                    raise ValueError(f"Field {self.name} is required")
-                if not self.nullable:
-                    raise ValueError(f"{self.name} isn't nullable")
-            case "" | () | {} | [] if not self.nullable:
+        # match-case галлюцинирует
+        if value is None:
+            if self.required:
+                raise ValueError(f"{self.name} is required")
+            if not self.nullable:
                 raise ValueError(f"{self.name} isn't nullable")
-            case _:
-                self.sub_field_validate(value)
+        elif value in ("", (), {}, []) and not self.nullable:
+            raise ValueError(f"{self.name} isn't nullable")
+        else:
+            self.sub_field_validate(value)
 
     def sub_field_validate(self, value) -> None:
         pass
@@ -80,13 +80,13 @@ class Field:
 class CharField(Field):
     def sub_field_validate(self, value) -> None:
         if not isinstance(value, str):
-            raise ValueError(f'Field "{self.name}" must be a string')
+            raise ValueError(f"{self.name} must be a string")
 
 
 class ArgumentsField(Field):
     def sub_field_validate(self, value) -> None:
         if not isinstance(value, dict):
-            raise ValueError(f'Field "{self.name}" must be a dictionary')
+            raise ValueError(f"{self.name} must be a dictionary")
 
 
 class EmailField(CharField):
@@ -95,24 +95,25 @@ class EmailField(CharField):
     def sub_field_validate(self, value) -> None:
         super().sub_field_validate(value)
         if not re.match(self.REGEX_EMAIL, value):
-            raise ValueError(f'Field "{self.name} must be email"')
+            raise ValueError(f"{self.name} must be email")
 
 
 class PhoneField(Field):
     REGEX_PHONE_NUMBER = r"^7\d{10}$"
 
-    def sub_field_validate(self, value) -> None:
+    def sub_field_validate(self, value) -> str:
 
         if not isinstance(value, str | int):
-            raise ValueError(f'Field "{self.name}" must be number or string')
+            raise ValueError(f"{self.name} must be number or string")
 
         if isinstance(value, int):
             value = str(value)
 
         if not re.match(self.REGEX_PHONE_NUMBER, value):
             raise ValueError(
-                f'Field "{self.name}" must starts with "7" and be no longer than 11 characters'
+                f'{self.name} must starts with "7" and be no longer than 11 characters'
             )
+        return value
 
 
 class DateField(Field):
@@ -120,7 +121,7 @@ class DateField(Field):
 
     def sub_field_validate(self, value) -> None:
         if not re.match(self.REGEX_DATE, value):
-            raise ValueError(f'Field "{self.name}" must be in the DD.MM.YYYY format')
+            raise ValueError(f"{self.name} must be in the DD.MM.YYYY format")
 
 
 class BirthDayField(DateField):
@@ -131,9 +132,9 @@ class BirthDayField(DateField):
         birth_date = datetime.datetime.strptime(value, "%d.%m.%Y").year
         date_now = datetime.datetime.now().year
         if date_now - birth_date > 70:
-            raise ValueError(
-                f"Haha, {date_now - birth_date} years old, don't lie, people don't live that long."
-            )
+            raise ValueError(f"{self.name} too many years old, must be <= 70")
+        if date_now - birth_date < 0:
+            raise ValueError(f"{self.name} must be positive amount years")
 
 
 class GenderField(Field):
@@ -141,9 +142,7 @@ class GenderField(Field):
 
     def sub_field_validate(self, value) -> None:
         if value not in self.VALUES:
-            raise ValueError(
-                f'Field "{self.name}" must be 0 - UNKNOWN, 1 - MALE, 2 - FEMALE'
-            )
+            raise ValueError(f"{self.name} must be 0 - UNKNOWN, 1 - MALE, 2 - FEMALE")
 
 
 class ClientIDsField(Field):
@@ -151,7 +150,7 @@ class ClientIDsField(Field):
         if not isinstance(value, list) or not all(
             isinstance(client_id, int) for client_id in value
         ):
-            raise ValueError(f'Field "{self.name}" must be list of integers')
+            raise ValueError(f"{self.name} must be list of integers")
 
 
 class BaseRequest:
@@ -172,12 +171,10 @@ class BaseRequest:
         }
 
 
-# Поля - это тупо атрибуты класса, поэтому они попадут в __class__.__dict__ у BaseRequest
-# Типы полей - это дескрипторы атрибутов класса
-
-
 class MethodRequest(BaseRequest):
-    account: str = CharField(required=False, nullable=True)
+    account: str = CharField(
+        required=True, nullable=True
+    )  # должно быть True, потому что используется в check_auth
     login: str = CharField(required=True, nullable=True)
     token: str = CharField(required=True, nullable=True)
     arguments: dict[str, Any] = ArgumentsField(required=True, nullable=True)
@@ -243,14 +240,16 @@ def online_score_method(request_obj, ctx, store):
 
 def clients_interests_method(request_obj, ctx, store):
     clients_interests_request_obj = ClientsInterestsRequest(request_obj.arguments)
-    response = {
-        client_id: get_interests(store, client_id)
-        for client_id in clients_interests_request_obj.client_ids
-    }
+    try:
+        response = {
+            client_id: get_interests(store, client_id)
+            for client_id in clients_interests_request_obj.client_ids
+        }
 
-    ctx["nclients"] = len(clients_interests_request_obj.client_ids)
-
-    return response, OK
+        ctx["nclients"] = len(clients_interests_request_obj.client_ids)
+        return response, OK
+    except redis.RedisError:
+        return "Connection to store failed", INTERNAL_ERROR
 
 
 def method_handler(request, ctx, store):
@@ -283,7 +282,7 @@ def method_handler(request, ctx, store):
 
 class MainHTTPHandler(BaseHTTPRequestHandler):
     router = {"method": method_handler}
-    store = None
+    store = Store()
 
     def get_request_id(self, headers):
         return headers.get("HTTP_X_REQUEST_ID", uuid.uuid4().hex)
@@ -297,7 +296,6 @@ class MainHTTPHandler(BaseHTTPRequestHandler):
             request = json.loads(data_string)
         except Exception:
             code = BAD_REQUEST
-
         if request:
             path = self.path.strip("/")
             logging.info("%s: %s %s" % (self.path, data_string, context["request_id"]))
@@ -320,7 +318,6 @@ class MainHTTPHandler(BaseHTTPRequestHandler):
         else:
             r = {"error": response or ERRORS.get(code, "Unknown Error"), "code": code}
         context.update(r)
-        logging.info(context)
         self.wfile.write(json.dumps(r).encode("utf-8"))
         return
 

@@ -1,7 +1,24 @@
 services:
+
   api_scoring:
+    container_name: "api-scoring"
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    depends_on:
+      - redis
+
+  redis:
+    container_name: "api-scoring-redis"
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+
+volumes:
+  redis_data:
