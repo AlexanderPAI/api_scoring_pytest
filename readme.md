@@ -15,6 +15,7 @@
     - добавлены тесты scoring-методов - `tests/unit/scoring/`
   - интеграционные тесты:
     - тестирование работы get, set, cache_get и cache_set методов Store (класс для взаимодействия с Redis=хранилищем)
+    - тестирование работы get_score и get_interests с поднятым Redis.
 
 ## Порядок запуска
 
