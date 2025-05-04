@@ -170,7 +170,9 @@ class BaseRequest:
 
 
 class MethodRequest(BaseRequest):
-    account: str = CharField(required=False, nullable=True)
+    account: str = CharField(
+        required=True, nullable=True
+    )  # должно быть True, потому что используется в check_auth
     login: str = CharField(required=True, nullable=True)
     token: str = CharField(required=True, nullable=True)
     arguments: dict[str, Any] = ArgumentsField(required=True, nullable=True)
