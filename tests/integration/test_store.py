@@ -1,4 +1,5 @@
 import hashlib
+import json
 
 import pytest
 
@@ -35,8 +36,8 @@ def test_store_cache_set_and_get(key_parts, score, expected):
     [
         pytest.param(
             1,
-            ["travel", "music"],
-            "['travel', 'music']",
+            json.dumps(["travel", "music"]),
+            '["travel", "music"]',
             id="POSITIVE Store: get and set",
         )
     ],

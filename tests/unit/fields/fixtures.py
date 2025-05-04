@@ -81,7 +81,7 @@ fields_positive_fixtures = [
         (datetime.datetime.now() - datetime.timedelta(days=365 * 69)).strftime(
             "%d.%m.%Y"
         ),
-        id="[POSITIVE] BirthDayField: value is {}".format(
+        id="POSITIVE BirthDayField: value is {}".format(
             (datetime.datetime.now() - datetime.timedelta(days=365 * 70)).strftime(
                 "%d.%m.%Y"
             )
