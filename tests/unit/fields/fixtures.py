@@ -1,6 +1,6 @@
 import pytest
 
-from src.api import ArgumentsField, CharField, Field
+from src.api import ArgumentsField, CharField, EmailField, Field
 
 fields_positive_fixtures = [
     pytest.param(
@@ -38,6 +38,12 @@ fields_positive_fixtures = [
         {"required": True, "nullable": False},
         {"key1": "value1", "key2": "value2"},
         id="ArgumentsField: value is dict",
+    ),
+    pytest.param(
+        EmailField,
+        {"required": True, "nullable": False},
+        "test@test.com",
+        id="EmailField: value is test@test.com",
     ),
 ]
 
@@ -147,5 +153,26 @@ fields_negative_fixtures = [
         ["one", "two"],
         "{field_name} must be a dictionary",
         id="ArgumentsField: value is list",
+    ),
+    pytest.param(
+        EmailField,
+        {"required": True, "nullable": False},
+        "test@test",
+        "{field_name} must be email",
+        id="EmailField: value is test@test",
+    ),
+    pytest.param(
+        EmailField,
+        {"required": True, "nullable": False},
+        "test.com",
+        "{field_name} must be email",
+        id="EmailField: value is test.com",
+    ),
+    pytest.param(
+        EmailField,
+        {"required": True, "nullable": False},
+        "test",
+        "{field_name} must be email",
+        id="EmailField: value is test",
     ),
 ]

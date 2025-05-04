@@ -93,7 +93,7 @@ class EmailField(CharField):
     def sub_field_validate(self, value) -> None:
         super().sub_field_validate(value)
         if not re.match(self.REGEX_EMAIL, value):
-            raise ValueError(f'Field "{self.name} must be email"')
+            raise ValueError(f"{self.name} must be email")
 
 
 class PhoneField(Field):
