@@ -119,7 +119,7 @@ class DateField(Field):
 
     def sub_field_validate(self, value) -> None:
         if not re.match(self.REGEX_DATE, value):
-            raise ValueError(f'Field "{self.name}" must be in the DD.MM.YYYY format')
+            raise ValueError(f"{self.name} must be in the DD.MM.YYYY format")
 
 
 class BirthDayField(DateField):

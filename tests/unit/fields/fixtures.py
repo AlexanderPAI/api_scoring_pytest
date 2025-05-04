@@ -1,6 +1,6 @@
 import pytest
 
-from src.api import ArgumentsField, CharField, EmailField, Field, PhoneField
+from src.api import ArgumentsField, CharField, DateField, EmailField, Field, PhoneField
 
 fields_positive_fixtures = [
     pytest.param(
@@ -56,6 +56,12 @@ fields_positive_fixtures = [
         {"required": True, "nullable": False},
         79998887766,
         id="PhoneField: value is 79998887766 (int)",
+    ),
+    pytest.param(
+        DateField,
+        {"required": True, "nullable": False},
+        "20.01.2025",
+        id="DateField: value is 20.01.2025",
     ),
 ]
 
@@ -221,5 +227,33 @@ fields_negative_fixtures = [
         8999888.0000,
         "{field_name} must be number or string",
         id="PhoneField: value is 8999888.0000 (float)",
+    ),
+    pytest.param(
+        DateField,
+        {"required": True, "nullable": False},
+        "2025.01.20",
+        "{field_name} must be in the DD.MM.YYYY format",
+        id="DateField: value is 2025.01.20",
+    ),
+    pytest.param(
+        DateField,
+        {"required": True, "nullable": False},
+        "20-01-2025",
+        "{field_name} must be in the DD.MM.YYYY format",
+        id="DateField: value is 20-01-2025",
+    ),
+    pytest.param(
+        DateField,
+        {"required": True, "nullable": False},
+        "20012025",
+        "{field_name} must be in the DD.MM.YYYY format",
+        id="DateField: value is 20012025",
+    ),
+    pytest.param(
+        DateField,
+        {"required": True, "nullable": False},
+        "20/01/2025",
+        "{field_name} must be in the DD.MM.YYYY format",
+        id="DateField: value is 20/01/2025",
     ),
 ]
